@@ -1,0 +1,410 @@
+// VARIABLES DECLARATION
+//game initialized with the following variables: 
+
+const markX = 'x';
+const markO = 'o';
+const winningPatterns = [
+	[0, 1, 2],
+	[3, 4, 5],
+	[6, 7, 8],
+	[0, 3, 6],
+	[1, 4, 7],
+	[2, 5, 8],
+	[0, 4, 8],
+	[2, 4, 6],
+];
+
+let currentPlayerMark = markO;
+let vsPlayer = false;
+let oTurn = false;
+
+let winnerX = 0;
+let winnerO = 0;
+let tie = 0;
+
+let winningArry;
+let currentPlayer;
+
+ 
+// Document Object Model (DOM)
+
+const vsCpuBtn = document.getElementById('vs-cpu');
+const vsPlayerBtn = document.getElementById('vs-player');
+const restartBtn = document.getElementById('restart-btn');
+
+const gameMenuId = document.getElementById('game-menu');
+const gamePlayId = document.getElementById('gamePlay');
+const pickMarks = document.querySelectorAll('#pick_mark div');
+const gameBoardId = document.getElementById('gameBoard_play');
+
+const modeId = document.getElementById('mode');
+const backdropId = document.getElementById('backdrop');
+
+const boxes = document.querySelectorAll('.gamePlay-card');
+
+
+//Functions defined
+
+function setGameModeHandler() {
+	const btnClickedId = this.id;
+
+	if (btnClickedId === 'vs-player') vsPlayer = true;
+
+	changeDomLayout(gameMenuId, 'display-block', 'display-none');
+	changeDomLayout(gamePlayId, 'display-none', 'display-grid');
+	startGame();
+}
+
+function changeDomLayout(domELement, firstDisplay, secondDisplay) {
+	domELement.classList.remove(firstDisplay);
+	domELement.classList.add(secondDisplay);
+}
+
+function startGame() {
+	setBoardHoverClass();
+	setScoreBoard();
+	setTurn();
+
+	if (!vsPlayer) playVsCpu();
+	else playVsPlayer();
+}
+
+function setBoardHoverClass() {
+	if (oTurn) {
+		gameBoardId.classList.remove(markX);
+		gameBoardId.classList.add(markO);
+	} else {
+		gameBoardId.classList.remove(markO);
+		gameBoardId.classList.add(markX);
+	}
+}
+
+function setScoreBoard() {
+	const winnerXId = document.getElementById('x-win');
+	const tieId = document.getElementById('tie');
+	const winnerOId = document.getElementById('o-win');
+
+	winnerXId.innerHTML = `${
+		currentPlayerMark === markX && vsPlayer? 'X (P1)'
+		:currentPlayerMark === markO && vsPlayer? 'X (P2)'
+		    : currentPlayerMark === markO
+			? 'X (CPU)'
+			: 'X (YOU)'
+	} <span id="x-win-inner" class="gameBoard-highlight">${winnerX}</span>`;
+	tieId.innerHTML = `Ties <span id="tie-inner" class="gameBoard-highlight">${tie}</span>`;
+	winnerOId.innerHTML = `${
+		currentPlayerMark === markX && vsPlayer? 'O (P2)'
+		:currentPlayerMark === markO && vsPlayer? 'O (P1)'
+			: currentPlayerMark === markO
+			?  'O (YOU)'
+			:  'O (CPU)'
+	} <span id="o-win-inner" class="gameBoard-highlight">${winnerO}</span>`;
+}
+
+function setTurn() {
+	const turnId = document.getElementById('gamePlay-turn');
+
+	turnId.innerHTML = `<svg class="gameBoard-turn-icon">
+											<use xlink:href="./assets/icon-${
+												oTurn ? markO : markX
+											}-default.svg#icon-${
+		oTurn ? markO : markX
+	}-default"></use>
+											</svg> &nbsp; Turn`;
+}
+
+function playVsCpu() {
+	if (currentPlayerMark === markO) getCpuChoice();
+	// CPU starts first
+
+	else getPlayerChoice(); 
+	// Player starts first
+}
+
+function playVsPlayer() {
+	getPlayerChoice();
+}
+
+function getEmptyBoxes() {
+	const boxesArray = Array.from(boxes);
+
+	return boxesArray.filter(
+		box => !box.classList.contains('x') && !box.classList.contains('o')
+	);
+}
+
+function setCpuBestMove() {
+	const emptyBoxes = getEmptyBoxes();
+	return emptyBoxes[Math.floor(Math.random() * emptyBoxes.length)];
+}
+
+//CPU made smarter
+//..
+function getCpuChoice() {
+    currentPlayer = oTurn ? markO : markX;
+
+    gameBoardId.classList.remove(markO);
+    gameBoardId.classList.remove(markX);
+
+    boxes.forEach(box => box.removeEventListener('click', playHandler));
+
+    const bestMove = findBestMove();
+    placeMark(boxes[bestMove], currentPlayer);
+    setGameLogic();
+
+    getPlayerChoice();
+}
+
+function findBestMove() {
+    let bestScore = -Infinity;
+    let bestMove;
+
+    for (let i = 0; i < 9; i++) {
+        if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
+            boxes[i].classList.add(currentPlayer);
+            let score = minimax(0, false);
+            boxes[i].classList.remove(currentPlayer);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = i;
+            }
+        }
+    }
+
+    return bestMove;
+}
+
+function minimax(depth, isMaximizing) {
+    if (checkWin(markX)) {
+        return depth - 10;
+    } else if (checkWin(markO)) {
+        return 10 - depth;
+    } else if (isDraw()) {
+        return 0;
+    }
+
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < 9; i++) {
+            if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
+                boxes[i].classList.add(markO);
+                let score = minimax(depth + 1, false);
+                boxes[i].classList.remove(markO);
+                bestScore = Math.max(score, bestScore);
+            }
+        }
+
+        return bestScore;
+    } 
+	else {
+        let bestScore = Infinity;
+
+        for (let i = 0; i < 9; i++) {
+            if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
+                boxes[i].classList.add(markX);
+                let score = minimax(depth + 1, true);
+                boxes[i].classList.remove(markX);
+                bestScore = Math.min(score, bestScore);
+            }
+        }
+
+        return bestScore;
+    }
+}
+
+//..
+
+function getPlayerChoice() {
+	boxes.forEach(box => {
+		if (!box.classList.contains('x') && !box.classList.contains('o')) {
+			box.addEventListener('click', playHandler, { once: true });
+		}
+	});
+}
+
+function placeMark(box, mark) {
+	box.classList.add(mark);
+}
+
+function setGameLogic() {
+	if (checkWin(currentPlayer)) {
+		endGame(false);
+	} else if (isDraw()) {
+		endGame(true);
+	} else {
+		swapTurns();
+		setBoardHoverClass();
+	}
+}
+
+function playHandler(event) {
+	const box = event.target;
+	currentPlayer = oTurn ? markO : markX;
+
+	placeMark(box, currentPlayer);
+	setGameLogic();
+
+	if (!vsPlayer && !checkWin(currentPlayer) && !isDraw()) getCpuChoice();
+}
+
+function checkWin(currentPlayer) {
+	return winningPatterns.some(combination => {
+		return combination.every((element, index, array) => {
+			let condition = boxes[element].classList.contains(currentPlayer);
+			if (condition) winningArry = array;
+			return condition;
+		});
+	});
+}
+
+function isDraw() {
+	return [...boxes].every(box => {
+		return box.classList.contains(markX) || box.classList.contains(markO);
+	});
+}
+
+function configureModeButtons() {
+	const nextRoundBtn = document.getElementById('next-round');
+	const quitBtn = document.getElementById('quit');
+
+	nextRoundBtn.addEventListener('click', setNextRound);
+	quitBtn.addEventListener('click', () => {
+		location.reload();
+	});
+}
+
+function endGame(draw) {
+	const tieInnerId = document.getElementById('tie-inner');
+
+	if (draw) {
+		tie++;
+		tieInnerId.innerText = tie;
+
+		changeDomLayout(backdropId, 'display-none', 'display-block');
+		changeDomLayout(modeId, 'display-none', 'display-block');
+
+		modeId.innerHTML = `
+		<h4 class="heading-large">Round Tied</h4>
+
+		<div class="mode-buttons">
+			<button id="quit" class="btn silverBtn-small smallBtn">Quit</button>
+			<button id="next-round" class="btn yellowBtn-small smallBtn">Next Round</button>
+		</div>
+		`;
+	} else {
+		setWinner(oTurn);
+	}
+
+	configureModeButtons();
+}
+
+function swapTurns() {
+	oTurn = !oTurn;
+	setTurn();
+}
+
+function setWinner() {
+	const winnerXInnerId = document.getElementById('x-win-inner');
+	const winnerOInnerId = document.getElementById('o-win-inner');
+
+	if (oTurn) winnerO++;
+	else winnerX++;
+
+	winnerXInnerId.innerText = winnerX;
+	winnerOInnerId.innerText = winnerO;
+
+	winningArry.forEach(index => {
+		boxes[index].classList.add('win');
+	});
+
+	setTimeout(() => {
+		changeDomLayout(backdropId, 'display-none', 'display-block');
+		changeDomLayout(modeId, 'display-none', 'display-block');
+	}, 500);
+
+	modeId.innerHTML = `<h4 class="heading-small">${
+		vsPlayer
+			? oTurn
+				? 'Player 1 Wins!'
+				: 'Player 2 wins!'
+			: oTurn && currentPlayerMark === 'o'
+			? 'You won!'
+			: !oTurn && currentPlayerMark === 'x'
+			? 'You won!'
+			: 'oh No, you lost...'
+	}</h4>
+	<div class="mode-result">
+		<svg class="mode-icon">
+			<use xlink:href="./assets/icon-${
+				oTurn ? markO : markX
+			}.svg#icon-${oTurn ? markO : markX}"></use>
+		</svg>
+		<h1 class="heading-large heading-large--${
+			oTurn ? 'yellow' : 'blue'
+		}">takes the round</h1>
+	</div>
+
+	<div class="mode-buttons">
+		<button id="quit" class="btn silverBtn-small smallBtn">Quit</button>
+		<button id="next-round" class="btn yellowBtn-small smallBtn">Next Round</button>
+	</div>`;
+}
+
+function setNextRound() {
+	oTurn = false;
+
+	changeDomLayout(modeId, 'display-block', 'display-none');
+	changeDomLayout(backdropId, 'display-block', 'display-none');
+
+	boxes.forEach(box => {
+		box.classList.remove(markX);
+		box.classList.remove(markO);
+		box.classList.remove('win');
+		box.removeEventListener('click', playHandler);
+	});
+
+	startGame();
+}
+
+function restartHandler() {
+	modeId.innerHTML = `<h1 class="heading-large">Restart Game?</h1>
+
+	<div class="mode-buttons">
+		<button id="btn-cancel" class="btn silverBtn-small smallBtn">
+			No, Cancel
+		</button>
+		<button id="btn-restart" class="btn yellowBtn-small smallBtn">
+			Yes, Restart
+		</button>
+	</div>`;
+
+	const restartBtn = document.getElementById('btn-restart');
+	const cancelBtn = document.getElementById('btn-cancel');
+
+	changeDomLayout(modeId, 'display-none', 'display-block');
+
+	restartBtn.addEventListener('click', setNextRound);
+	cancelBtn.addEventListener('click', () => {
+		changeDomLayout(modeId, 'display-block', 'display-none');
+	});
+}
+
+function getUserChoiceHandler() {
+	currentPlayerMark = this.id;
+
+	this.classList.add('selected');
+
+	if (this.nextElementSibling)
+		this.nextElementSibling.classList.remove('selected');
+	else this.previousElementSibling.classList.remove('selected');
+}
+
+pickMarks.forEach(mark => {
+	mark.addEventListener('click', getUserChoiceHandler);
+});
+
+restartBtn.addEventListener('click', restartHandler);
+vsCpuBtn.addEventListener('click', setGameModeHandler);
+vsPlayerBtn.addEventListener('click', setGameModeHandler);
