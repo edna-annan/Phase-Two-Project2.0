@@ -1,8 +1,8 @@
 // VARIABLES DECLARATION
 //game initialized with the following variables: 
 
-const markX = 'x';
-const markO = 'o';
+let markX = 'x';
+let markO = 'o';
 const winningPatterns = [
 	[0, 1, 2],
 	[3, 4, 5],
@@ -16,7 +16,7 @@ const winningPatterns = [
 
 let currentPlayerMark = markO;
 let vsPlayer = false;
-let oTurn = false;
+let oTurn= false;
 
 let winnerX = 0;
 let winnerO = 0;
@@ -25,6 +25,7 @@ let tie = 0;
 let winningArry;
 let currentPlayer;
 
+let oppositePlayer = (currentPlayerMark === markO) ? markX : markO; //new addition ref: CPUsmart
  
 // Document Object Model (DOM)
 
@@ -99,6 +100,9 @@ function setScoreBoard() {
 			?  'O (YOU)'
 			:  'O (CPU)'
 	} <span id="o-win-inner" class="gameBoard-highlight">${winnerO}</span>`;
+
+updateOppositePlayer(); // Update oppositePlayer accordingly
+
 }
 
 function setTurn() {
@@ -116,32 +120,23 @@ function setTurn() {
 function playVsCpu() {
 	if (currentPlayerMark === markO) getCpuChoice();
 	// CPU starts first
-
+	
 	else getPlayerChoice(); 
 	// Player starts first
+
+updateOppositePlayer(); // Update oppositePlayer accordingly
+
 }
 
 function playVsPlayer() {
 	getPlayerChoice();
 }
 
-function getEmptyBoxes() {
-	const boxesArray = Array.from(boxes);
-
-	return boxesArray.filter(
-		box => !box.classList.contains('x') && !box.classList.contains('o')
-	);
-}
-
-function setCpuBestMove() {
-	const emptyBoxes = getEmptyBoxes();
-	return emptyBoxes[Math.floor(Math.random() * emptyBoxes.length)];
-}
-
 //CPU made smarter
-//..
+//..start
+
 function getCpuChoice() {
-    currentPlayer = oTurn ? markO : markX;
+	currentPlayer = oppositePlayer;
 
     gameBoardId.classList.remove(markO);
     gameBoardId.classList.remove(markX);
@@ -159,11 +154,11 @@ function findBestMove() {
     let bestScore = -Infinity;
     let bestMove;
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < boxes.length; i++) {
         if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
-            boxes[i].classList.add(currentPlayer);
+            boxes[i].classList.add(oppositePlayer);
             let score = minimax(0, false);
-            boxes[i].classList.remove(currentPlayer);
+            boxes[i].classList.remove(oppositePlayer);
 
             if (score > bestScore) {
                 bestScore = score;
@@ -176,10 +171,12 @@ function findBestMove() {
 }
 
 function minimax(depth, isMaximizing) {
-    if (checkWin(markX)) {
-        return depth - 10;
-    } else if (checkWin(markO)) {
-        return 10 - depth;
+
+    if (checkWin(currentPlayerMark)) {
+		updateOppositePlayer();
+        return -1;
+    } else if (checkWin(oppositePlayer)) {
+        return 1;
     } else if (isDraw()) {
         return 0;
     }
@@ -187,11 +184,11 @@ function minimax(depth, isMaximizing) {
     if (isMaximizing) {
         let bestScore = -Infinity;
 
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < boxes.length; i++) {
             if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
-                boxes[i].classList.add(markO);
+                boxes[i].classList.add(oppositePlayer);
                 let score = minimax(depth + 1, false);
-                boxes[i].classList.remove(markO);
+                boxes[i].classList.remove(oppositePlayer);
                 bestScore = Math.max(score, bestScore);
             }
         }
@@ -201,11 +198,11 @@ function minimax(depth, isMaximizing) {
 	else {
         let bestScore = Infinity;
 
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < boxes.length; i++) {
             if (!boxes[i].classList.contains(markX) && !boxes[i].classList.contains(markO)) {
-                boxes[i].classList.add(markX);
+                boxes[i].classList.add(currentPlayerMark);
                 let score = minimax(depth + 1, true);
-                boxes[i].classList.remove(markX);
+                boxes[i].classList.remove(currentPlayerMark);
                 bestScore = Math.min(score, bestScore);
             }
         }
@@ -214,7 +211,7 @@ function minimax(depth, isMaximizing) {
     }
 }
 
-//..
+//..end
 
 function getPlayerChoice() {
 	boxes.forEach(box => {
@@ -334,6 +331,7 @@ function setWinner() {
 			: !oTurn && currentPlayerMark === 'x'
 			? 'You won!'
 			: 'oh No, you lost...'
+			
 	}</h4>
 	<div class="mode-result">
 		<svg class="mode-icon">
@@ -350,6 +348,7 @@ function setWinner() {
 		<button id="quit" class="btn silverBtn-small smallBtn">Quit</button>
 		<button id="next-round" class="btn yellowBtn-small smallBtn">Next Round</button>
 	</div>`;
+	updateOppositePlayer();
 }
 
 function setNextRound() {
@@ -391,6 +390,11 @@ function restartHandler() {
 	});
 }
 
+function updateOppositePlayer() {
+	oppositePlayer = (currentPlayerMark === markO) ? markX : markO;
+  }
+  
+
 function getUserChoiceHandler() {
 	currentPlayerMark = this.id;
 
@@ -399,11 +403,14 @@ function getUserChoiceHandler() {
 	if (this.nextElementSibling)
 		this.nextElementSibling.classList.remove('selected');
 	else this.previousElementSibling.classList.remove('selected');
+updateOppositePlayer(); // Update oppositePlayer accordingly
+
 }
 
 pickMarks.forEach(mark => {
 	mark.addEventListener('click', getUserChoiceHandler);
 });
+
 
 restartBtn.addEventListener('click', restartHandler);
 vsCpuBtn.addEventListener('click', setGameModeHandler);
