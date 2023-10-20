@@ -143,11 +143,13 @@ function getCpuChoice() {
 
     boxes.forEach(box => box.removeEventListener('click', playHandler));
 
-    const bestMove = findBestMove();
-    placeMark(boxes[bestMove], currentPlayer);
-    setGameLogic();
-
-    getPlayerChoice();
+    setTimeout(() => {
+		const bestMove = findBestMove();
+		placeMark(boxes[bestMove], currentPlayer);
+		setGameLogic();
+		getPlayerChoice();
+		
+	}, Math.floor(Math.random() * 1000) + 1000); //Random delay between 1 and 2 seconds
 }
 
 function findBestMove() {
